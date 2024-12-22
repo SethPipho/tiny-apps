@@ -1,1 +1,1 @@
-# pomodoro
+# tiny-apps
