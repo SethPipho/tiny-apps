@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <style>
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .header a {
+            color: #666;
+            text-decoration: none;
+            margin-right: 1rem;
+            transition: color 0.2s ease;
+        }
+
+        .header a:hover {
+            color: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #ffffff;
+            color: #333;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .timer {
+            font-size: 5rem;
+            font-weight: 300;
+            margin: 2rem 0;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -2px;
+        }
+
+        .mode {
+            font-size: 1rem;
+            text-align: center;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        button {
+            background: none;
+            border: 1px solid #ddd;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: #f5f5f5;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .settings {
+            margin: 2rem 0;
+            padding: 1.5rem 0;
+            border-top: 1px solid #eee;
+        }
+
+        .setting-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.75rem 0;
+            font-size: 0.9rem;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 0.4rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+
+        label {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/todo">Todo</a>
+        <a href="/pomodoro">Pomodoro</a>
+  
+    </div>
+    <div class="container">
+        <div class="mode" id="mode-display">Work Time</div>
+        <div class="timer" id="timer-display">25:00</div>
+        <div class="controls">
+            <button id="start-btn">Start</button>
+            <button id="pause-btn" disabled>Pause</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+        <div class="settings">
+            <div class="setting-group">
+                <label for="work-time">Work Time (min)</label>
+                <input type="number" id="work-time" min="1" max="60" value="25" step="1">
+            </div>
+            <div class="setting-group">
+                <label for="break-time">Break Time (min)</label>
+                <input type="number" id="break-time" min="1" max="60" value="5" step="1">
+            </div>
+            <div class="setting-group">
+                <label for="sound-enabled">Sound</label>
+                <input type="checkbox" id="sound-enabled" checked>
+            </div>
+            <div class="setting-group">
+                <label for="notifications-enabled">Notifications</label>
+                <input type="checkbox" id="notifications-enabled" checked>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // [Previous JavaScript code remains exactly the same]
+        class PomodoroTimer {
+            constructor() {
+                this.currentTime = this.workTime;
+                this.isWorkMode = true;
+                this.isRunning = false;
+                this.timer = null;
+              
+                this.settings = {
+                    workTime: 25 * 60,
+                    breakTime: 5 * 60,
+                    soundEnabled: true,
+                    notificationsEnabled: true
+                };
+                
+                // Create audio element
+                this.audio = new Audio('sound.mp3');
+
+                // Settings elements
+                this.workTimeInput = document.getElementById('work-time');
+                this.breakTimeInput = document.getElementById('break-time');
+                this.soundEnabledInput = document.getElementById('sound-enabled');
+                this.notificationsEnabledInput = document.getElementById('notifications-enabled');
+                this.applySettingsBtn = document.getElementById('apply-settings');
+
+                // Load saved settings
+                this.loadSettings();
+
+                // DOM elements
+                this.timerDisplay = document.getElementById('timer-display');
+                this.modeDisplay = document.getElementById('mode-display');
+                this.startBtn = document.getElementById('start-btn');
+                this.pauseBtn = document.getElementById('pause-btn');
+                this.resetBtn = document.getElementById('reset-btn');
+
+                // Bind event listeners
+                this.startBtn.addEventListener('click', () => this.start());
+                this.pauseBtn.addEventListener('click', () => this.pause());
+                this.resetBtn.addEventListener('click', () => this.reset());
+
+                this.workTimeInput.addEventListener('change', () => {
+                    this.settings.workTime = (parseFloat(this.workTimeInput.value) * 60) || 25 * 60;
+                    this.saveSettings();
+                    if (!this.isRunning) {
+                        this.reset();
+                    }
+                });
+
+                this.breakTimeInput.addEventListener('change', () => {
+                    this.settings.breakTime = (parseFloat(this.breakTimeInput.value) * 60) || 5 * 60;
+                    this.saveSettings();
+                    if (!this.isRunning) {
+                        this.reset();
+                    }
+                });
+
+                this.soundEnabledInput.addEventListener('change', () => {
+                    this.settings.soundEnabled = this.soundEnabledInput.checked;
+                    this.saveSettings();
+                });
+
+                this.notificationsEnabledInput.addEventListener('change', () => {
+                    this.settings.notificationsEnabled = this.notificationsEnabledInput.checked;
+                    if (this.settings.notificationsEnabled) {
+                        Notification.requestPermission();
+                    }
+                    this.saveSettings();
+                });
+
+                // Request notification permission if enabled
+                if (this.settings.notificationsEnabled) {
+                    Notification.requestPermission();
+                }
+
+                this.reset();
+                // Initialize display
+                this.updateDisplay();
+            }
+
+            start() {
+                if (!this.isRunning) {
+                    this.isRunning = true;
+                    this.startBtn.disabled = true;
+                    this.pauseBtn.disabled = false;
+                    
+                    this.timer = setInterval(() => {
+                        this.currentTime--;
+                        
+                        if (this.currentTime < 0) {
+                            this.switchMode();
+                        }
+                        
+                        this.updateDisplay();
+                    }, 1000);
+                }
+            }
+
+            pause() {
+                if (this.isRunning) {
+                    this.isRunning = false;
+                    clearInterval(this.timer);
+                    this.startBtn.disabled = false;
+                    this.pauseBtn.disabled = true;
+                }
+            }
+
+            reset() {
+                this.pause();
+                this.isWorkMode = true;
+                this.currentTime = this.settings.workTime;
+                this.updateDisplay();
+            }
+
+            switchMode() {
+                this.isWorkMode = !this.isWorkMode;
+                this.currentTime = this.isWorkMode ? this.settings.workTime : this.settings.breakTime;
+                this.notifyUser();
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                const minutes = Math.floor(this.currentTime / 60);
+                const seconds = this.currentTime % 60;
+                const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                const modeString = this.isWorkMode ? 'Work Time' : 'Break Time';
+                
+                this.timerDisplay.textContent = timeString;
+                this.modeDisplay.textContent = modeString;
+                document.title = `${modeString} - ${timeString} - Pomodoro Timer`;
+            }
+
+            notifyUser() {
+                if (this.settings.soundEnabled) {
+                    try {
+                        this.audio.currentTime = 0;
+                        this.audio.volume = 0.25;
+                        this.audio.play().catch(error => {
+                            console.log('Error playing sound:', error);
+                        });
+                    } catch (error) {
+                        console.log('Error with audio:', error);
+                    }
+                }
+
+                if (this.settings.notificationsEnabled && Notification.permission === 'granted') {
+                    new Notification(this.isWorkMode ? 'Work Time!' : 'Break Time!');
+                }
+            }
+
+            saveSettings() {
+                localStorage.setItem('pomodoroSettings', JSON.stringify(this.settings));
+            }
+
+            loadSettings() {
+                try {
+                    const savedSettings = localStorage.getItem('pomodoroSettings');
+                    if (savedSettings) {
+                        this.settings = JSON.parse(savedSettings);
+                        
+                        this.workTimeInput.value = this.settings.workTime / 60;
+                        this.breakTimeInput.value = this.settings.breakTime / 60;
+                        this.soundEnabledInput.checked = this.settings.soundEnabled;
+                        this.notificationsEnabledInput.checked = this.settings.notificationsEnabled;
+                    }
+                } catch (error) {
+                    console.log('Error loading settings:', error);
+                    this.workTimeInput.value = '25';
+                    this.breakTimeInput.value = '5';
+                }
+            }
+        }
+
+        // Initialize the timer
+        const pomodoro = new PomodoroTimer();
+    </script>
+</body>
+</html>

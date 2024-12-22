@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <style>
+         .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .header a {
+            color: #666;
+            text-decoration: none;
+            margin-right: 1rem;
+            transition: color 0.2s ease;
+        }
+
+        .header a:hover {
+            color: #333;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+        }
+
+        .todo-header {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        input {
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        #todo-input, .edit-input {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-bottom: 1px solid #ddd;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #todo-input:focus, .edit-input:focus {
+            border-bottom-color: #666;
+        }
+
+        button {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        button:hover {
+            color: #333;
+        }
+
+        .todo-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 0;
+            gap: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .todo-item:last-child {
+            border-bottom: none;
+        }
+
+        .todo-item.completed .todo-text {
+            color: #999;
+            text-decoration: line-through;
+        }
+
+        .todo-text {
+            flex: 1;
+            cursor: pointer;
+            padding: 0.25rem 0;
+        }
+
+        .delete-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .todo-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .info-text {
+            color: #999;
+            font-size: 0.8rem;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        /* Custom checkbox styling */
+        input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        input[type="checkbox"]:checked {
+            background: #666;
+            border-color: #666;
+        }
+
+        input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 12px;
+            left: 3px;
+            top: -1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/todo">Todo</a>
+        <a href="/pomodoro">Pomodoro</a>
+  
+    </div>
+    <div class="todo-container">
+        <h1>Todos</h1>
+        <div class="todo-header">
+            <input type="text" id="todo-input" placeholder="What needs to be done?">
+            <button id="add-button">Add</button>
+        </div>
+        <ul class="todo-list" id="todo-list"></ul>
+        <p class="info-text">Double-click to edit • Double-click to edit</p>
+    </div>
+
+    <script>
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize todos array from localStorage or empty array if not available
+            let todos = [];
+            try {
+                const savedTodos = localStorage.getItem('todos');
+                if (savedTodos) {
+                    todos = JSON.parse(savedTodos);
+                }
+            } catch (error) {
+                console.error('Failed to load todos from localStorage:', error);
+            }
+            
+            // Get DOM elements
+            const todoInput = document.getElementById('todo-input');
+            const addButton = document.getElementById('add-button');
+            const todoList = document.getElementById('todo-list');
+
+            // Function to save todos to localStorage
+            function saveTodos() {
+                try {
+                    localStorage.setItem('todos', JSON.stringify(todos));
+                } catch (error) {
+                    console.error('Failed to save todos to localStorage:', error);
+                }
+            }
+
+            // Function to render todos
+            function renderTodos() {
+                todoList.innerHTML = '';
+
+                todos.forEach((todo, index) => {
+                    const li = document.createElement('li');
+                    li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = todo.completed;
+                    checkbox.onchange = () => toggleTodo(index);
+
+                    const span = document.createElement('span');
+                    span.className = 'todo-text';
+                    span.textContent = todo.text;
+                    span.ondblclick = () => startEditing(span, index);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.textContent = '×';
+                    deleteBtn.onclick = () => deleteTodo(index);
+
+                    li.appendChild(checkbox);
+                    li.appendChild(span);
+                    li.appendChild(deleteBtn);
+                    todoList.appendChild(li);
+                });
+            }
+
+            // Function to start editing a todo
+            function startEditing(element, index) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'edit-input';
+                input.value = todos[index].text;
+                
+                element.parentNode.replaceChild(input, element);
+                input.focus();
+
+                function finishEditing() {
+                    const newText = input.value.trim();
+                    if (newText) {
+                        todos[index].text = newText;
+                        renderTodos();
+                        saveTodos();
+                    } else {
+                        renderTodos();
+                    }
+                }
+
+                input.addEventListener('blur', finishEditing);
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        finishEditing();
+                    }
+                });
+            }
+
+            // Function to add a new todo
+            function addTodo() {
+                const text = todoInput.value.trim();
+
+                if (text) {
+                    todos.push({
+                        text,
+                        completed: false
+                    });
+                    renderTodos();
+                    saveTodos();
+                    todoInput.value = '';
+                }
+            }
+
+            // Function to toggle todo completion
+            function toggleTodo(index) {
+                todos[index].completed = !todos[index].completed;
+                renderTodos();
+                saveTodos();
+            }
+
+            // Function to delete a todo
+            function deleteTodo(index) {
+                todos.splice(index, 1);
+                renderTodos();
+                saveTodos();
+            }
+
+            // Add event listeners
+            addButton.addEventListener('click', addTodo);
+            
+            todoInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addTodo();
+                }
+            });
+
+            // Add sample todos if no saved todos exist
+            if (todos.length === 0) {
+                todos.push(
+                    { text: "Build a todo app", completed: true },
+                    { text: "Add new features", completed: false }
+                );
+                saveTodos();
+            }
+
+            // Initial render
+            renderTodos();
+        });
+    </script>
+</body>
+</html>
