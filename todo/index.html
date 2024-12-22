@@ -290,14 +290,7 @@
                 }
             });
 
-            // Add sample todos if no saved todos exist
-            if (todos.length === 0) {
-                todos.push(
-                    { text: "Build a todo app", completed: true },
-                    { text: "Add new features", completed: false }
-                );
-                saveTodos();
-            }
+         
 
             // Initial render
             renderTodos();
