@@ -193,6 +193,13 @@
                 }
             }
 
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'todos') {
+                    todos = JSON.parse(e.newValue);
+                    renderTodos();
+                }
+            });
+
             // Function to render todos
             function renderTodos() {
                 todoList.innerHTML = '';
@@ -289,9 +296,6 @@
                     addTodo();
                 }
             });
-
-         
-
             // Initial render
             renderTodos();
         });
