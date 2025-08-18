@@ -6,7 +6,7 @@ class ImageAnnotationApp {
         this.imageInput = document.getElementById('imageInput');
         
         this.annotations = [];
-        this.currentTool = 'line';
+        this.currentTool = 'select';
         this.isDrawing = false;
         this.currentPath = [];
         this.imageLoaded = false;
@@ -20,6 +20,7 @@ class ImageAnnotationApp {
         this.imageInput.addEventListener('change', (e) => this.handleImageUpload(e));
         document.getElementById('annotationsInput').addEventListener('change', (e) => this.handleAnnotationsLoad(e));
         
+        document.getElementById('selectTool').addEventListener('click', () => this.setTool('select'));
         document.getElementById('lineTool').addEventListener('click', () => this.setTool('line'));
         document.getElementById('polygonTool').addEventListener('click', () => this.setTool('polygon'));
         document.getElementById('clearAll').addEventListener('click', () => this.clearAll());
@@ -189,20 +190,25 @@ class ImageAnnotationApp {
         
         const pos = this.getMousePos(event);
         
-        // Check if clicking on existing annotation for selection
-        const clickedAnnotation = this.getAnnotationAtPoint(pos);
-        if (clickedAnnotation !== null && !this.isDrawing) {
-            this.selectAnnotation(clickedAnnotation);
+        if (this.currentTool === 'select') {
+            // Check if clicking on existing annotation for selection
+            const clickedAnnotation = this.getAnnotationAtPoint(pos);
+            if (clickedAnnotation !== null) {
+                this.selectAnnotation(clickedAnnotation);
+                return;
+            }
+            
+            // Clear selection if clicking elsewhere
+            this.selectedAnnotation = null;
+            this.redraw();
             return;
         }
         
-        // Clear selection if clicking elsewhere
-        if (!this.isDrawing) {
+        // For drawing tools, clear selection and start drawing
+        if (this.currentTool === 'line' || this.currentTool === 'polygon') {
             this.selectedAnnotation = null;
-            this.redraw();
+            this.startDrawing(event);
         }
-        
-        this.startDrawing(event);
     }
     
     startDrawing(event) {

@@ -20,7 +20,8 @@
                 </div>
                 
                 <div class="tools">
-                    <button id="lineTool" class="tool-btn active">Line</button>
+                    <button id="selectTool" class="tool-btn active">Select</button>
+                    <button id="lineTool" class="tool-btn">Line</button>
                     <button id="polygonTool" class="tool-btn">Polygon</button>
                     <button id="clearAll" class="clear-btn">Clear All</button>
                 </div>
@@ -32,9 +33,9 @@
             
             <div class="canvas-container">
                 <div class="instructions">
+                    <p><strong>Select tool:</strong> Click on existing annotations to select and edit</p>
                     <p><strong>Line tool:</strong> Click to add points, double-click to finish</p>
                     <p><strong>Polygon tool:</strong> Click to add points, double-click to finish</p>
-                    <p><strong>Select:</strong> Click on existing annotations to select and edit</p>
                 </div>
                 <canvas id="annotationCanvas"></canvas>
                 <img id="uploadedImage" style="display: none;">
