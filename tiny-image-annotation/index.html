@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Image Annotation</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1>Tiny Image Annotation</h1>
+    </header>
+    
+    <div class="app-layout">
+        <main class="main-content">
+            <div class="controls">
+                <div class="file-input-section">
+                    <input type="file" id="imageInput" accept="image/*">
+                    <label for="imageInput" class="file-label">Choose Image</label>
+                </div>
+                
+                <div class="tools">
+                    <button id="lineTool" class="tool-btn active">Line</button>
+                    <button id="polygonTool" class="tool-btn">Polygon</button>
+                    <button id="clearAll" class="clear-btn">Clear All</button>
+                </div>
+                
+                <div class="annotation-controls">
+                    <button id="exportBtn" class="export-btn">Export Annotations</button>
+                </div>
+            </div>
+            
+            <div class="canvas-container">
+                <div class="instructions">
+                    <p><strong>Line tool:</strong> Click to add points, double-click to finish</p>
+                    <p><strong>Polygon tool:</strong> Click to add points, double-click to finish</p>
+                    <p><strong>Select:</strong> Click on existing annotations to select and edit</p>
+                </div>
+                <canvas id="annotationCanvas"></canvas>
+                <img id="uploadedImage" style="display: none;">
+            </div>
+        </main>
+        
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>Annotations</h3>
+                <div class="sidebar-actions">
+                    <input type="file" id="annotationsInput" accept=".json" style="display: none;">
+                    <label for="annotationsInput" class="file-label" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Load</label>
+                    <button id="toggleSidebar" class="toggle-btn">←</button>
+                </div>
+            </div>
+            <div class="annotations-list">
+                <div id="annotationsList"></div>
+            </div>
+        </aside>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
