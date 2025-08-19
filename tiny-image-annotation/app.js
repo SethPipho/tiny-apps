@@ -11,6 +11,9 @@ class ImageAnnotationApp {
         this.currentPath = [];
         this.imageLoaded = false;
         this.selectedAnnotation = null;
+        this.lastClickPos = null;
+        this.overlappingAtLastClick = [];
+        this.currentOverlapIndex = 0;
         
         this.setupEventListeners();
         this.setupCanvas();
@@ -169,6 +172,7 @@ class ImageAnnotationApp {
         this.currentTool = tool;
         this.currentPath = [];
         this.isDrawing = false;
+        this.clearOverlapTracking();
         
         document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById(tool + 'Tool').classList.add('active');
@@ -191,16 +195,7 @@ class ImageAnnotationApp {
         const pos = this.getMousePos(event);
         
         if (this.currentTool === 'select') {
-            // Check if clicking on existing annotation for selection
-            const clickedAnnotation = this.getAnnotationAtPoint(pos);
-            if (clickedAnnotation !== null) {
-                this.selectAnnotation(clickedAnnotation);
-                return;
-            }
-            
-            // Clear selection if clicking elsewhere
-            this.selectedAnnotation = null;
-            this.redraw();
+            this.handleSelectionClick(pos);
             return;
         }
         
@@ -526,6 +521,86 @@ class ImageAnnotationApp {
         return null;
     }
     
+    getAllAnnotationsAtPoint(point) {
+        const overlapping = [];
+        for (let i = 0; i < this.annotations.length; i++) {
+            const annotation = this.annotations[i];
+            if (this.isPointInAnnotation(point, annotation)) {
+                overlapping.push(i);
+            }
+        }
+        return overlapping;
+    }
+    
+    handleSelectionClick(pos) {
+        const tolerance = 5; // pixels
+        const isSamePosition = this.lastClickPos && 
+            Math.abs(pos.x - this.lastClickPos.x) < tolerance && 
+            Math.abs(pos.y - this.lastClickPos.y) < tolerance;
+        
+        if (isSamePosition && this.overlappingAtLastClick.length > 1) {
+            // Cycle to next overlapping annotation
+            this.currentOverlapIndex = (this.currentOverlapIndex + 1) % this.overlappingAtLastClick.length;
+            const selectedIndex = this.overlappingAtLastClick[this.currentOverlapIndex];
+            this.selectAnnotation(selectedIndex);
+            this.showOverlapIndicator();
+        } else {
+            // New click position - find all overlapping annotations
+            this.lastClickPos = { x: pos.x, y: pos.y };
+            this.overlappingAtLastClick = this.getAllAnnotationsAtPoint(pos);
+            this.currentOverlapIndex = 0;
+            
+            if (this.overlappingAtLastClick.length > 0) {
+                const selectedIndex = this.overlappingAtLastClick[this.currentOverlapIndex];
+                this.selectAnnotation(selectedIndex);
+                if (this.overlappingAtLastClick.length > 1) {
+                    this.showOverlapIndicator();
+                }
+            } else {
+                // Clear selection if clicking elsewhere
+                this.selectedAnnotation = null;
+                this.redraw();
+            }
+        }
+    }
+    
+    showOverlapIndicator() {
+        // Show temporary indicator for overlapping annotations
+        const current = this.currentOverlapIndex + 1;
+        const total = this.overlappingAtLastClick.length;
+        
+        // Create or update indicator element
+        let indicator = document.getElementById('overlapIndicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'overlapIndicator';
+            indicator.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                z-index: 1000;
+                pointer-events: none;
+            `;
+            document.body.appendChild(indicator);
+        }
+        
+        indicator.textContent = `Annotation ${current} of ${total} (click to cycle)`;
+        indicator.style.display = 'block';
+        
+        // Auto-hide after 2 seconds
+        clearTimeout(this.indicatorTimeout);
+        this.indicatorTimeout = setTimeout(() => {
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+        }, 2000);
+    }
+    
     isPointInAnnotation(point, annotation) {
         const coords = annotation.geometry.coordinates;
         
@@ -592,6 +667,19 @@ class ImageAnnotationApp {
         this.redraw();
     }
     
+    clearOverlapTracking() {
+        this.lastClickPos = null;
+        this.overlappingAtLastClick = [];
+        this.currentOverlapIndex = 0;
+        
+        // Hide overlap indicator
+        const indicator = document.getElementById('overlapIndicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
+        clearTimeout(this.indicatorTimeout);
+    }
+    
     
     removeAnnotation(index) {
         this.annotations.splice(index, 1);
@@ -600,6 +688,7 @@ class ImageAnnotationApp {
         } else if (this.selectedAnnotation > index) {
             this.selectedAnnotation--;
         }
+        this.clearOverlapTracking();
         this.updateAnnotationsList();
         this.redraw();
     }
@@ -608,6 +697,7 @@ class ImageAnnotationApp {
         this.annotations = [];
         this.currentPath = [];
         this.isDrawing = false;
+        this.clearOverlapTracking();
         this.updateAnnotationsList();
         this.redraw();
     }
